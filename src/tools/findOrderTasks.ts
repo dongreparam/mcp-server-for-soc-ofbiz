@@ -27,57 +27,90 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
             }
         },
         handler: async (args: { orderId: string; workEffortTypeId?: string }, request: express.Request) => {
-            const backendUrl = `${serverConfig.BACKEND_API_BASE}/api/performFind`;
+            const performFindUrl = `${serverConfig.BACKEND_API_BASE}/api/performFind`;
 
             const httpsAgent = new https.Agent({
                 rejectUnauthorized: false
             });
 
-            // Assuming sourceReferenceId is used for Order ID linkage in standard WorkEffort usage for tasks
-            const inputFields: any = {
-                sourceReferenceId: args.orderId
-            };
-            if (args.workEffortTypeId) {
-                inputFields.workEffortTypeId = args.workEffortTypeId;
-            } else {
-                inputFields.workEffortTypeId = 'RESOLVE_ONHOLD_ORDER';
-            }
-
-            const requestOptions = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': serverConfig.BACKEND_USER_AGENT || '',
-                    Accept: 'application/json',
-                    Authorization: (request as any).authInfo?.downstreamToken
-                        ? `Bearer ${(request as any).authInfo.downstreamToken}`
-                        : (serverConfig.BACKEND_ACCESS_TOKEN ? `Bearer ${serverConfig.BACKEND_ACCESS_TOKEN}` : '')
-                },
-                body: JSON.stringify({
-                    entityName: 'WorkEffort',
-                    noConditionFind: 'Y',
-                    inputFields,
-                    viewSize: 20,
-                    orderBy: '-createdDate'
-                }),
-                agent: httpsAgent
+            const commonHeaders = {
+                'Content-Type': 'application/json',
+                'User-Agent': serverConfig.BACKEND_USER_AGENT || '',
+                Accept: 'application/json',
+                Authorization: (request as any).authInfo?.downstreamToken
+                    ? `Bearer ${(request as any).authInfo.downstreamToken}`
+                    : (serverConfig.BACKEND_ACCESS_TOKEN ? `Bearer ${serverConfig.BACKEND_ACCESS_TOKEN}` : '')
             };
 
             try {
-                const response = await fetch(backendUrl, requestOptions);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                // Step 1: Link Order to WorkEffort via OrderHeaderWorkEffort
+                const linkRequestOptions = {
+                    method: 'POST',
+                    headers: commonHeaders,
+                    body: JSON.stringify({
+                        entityName: 'OrderHeaderWorkEffort',
+                        noConditionFind: 'Y',
+                        inputFields: {
+                            orderId: args.orderId
+                        },
+                        viewSize: 100 // Reasonable limit for tasks per order
+                    }),
+                    agent: httpsAgent
+                };
 
-                const data = await response.json() as any;
-                const docs = data.docs || [];
+                const linkResponse = await fetch(performFindUrl, linkRequestOptions);
+                if (!linkResponse.ok) throw new Error(`Failed to fetch OrderHeaderWorkEffort: ${linkResponse.status}`);
 
-                const tasks = docs.map((task: any) => ({
-                    workEffortId: task.workEffortId,
-                    workEffortName: task.workEffortName,
-                    workEffortTypeId: task.workEffortTypeId,
-                    currentStatusId: task.currentStatusId,
-                    description: task.description,
-                    createdDate: task.createdDate
-                }));
+                const linkData = await linkResponse.json() as any;
+                const linkDocs = linkData.docs || [];
+
+                if (linkDocs.length === 0) {
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify([]) }],
+                        structuredContent: { tasks: [] }
+                    };
+                }
+
+                // Step 2: Fetch details for each WorkEffort found
+                const tasks: any[] = [];
+
+                for (const link of linkDocs) {
+                    const taskMsg = {
+                        entityName: 'WorkEffort',
+                        inputFields: {
+                            workEffortId: link.workEffortId
+                        }
+                    };
+
+                    const taskRequestOptions = {
+                        method: 'POST',
+                        headers: commonHeaders,
+                        body: JSON.stringify(taskMsg),
+                        agent: httpsAgent
+                    };
+
+                    const taskResponse = await fetch(performFindUrl, taskRequestOptions);
+                    if (taskResponse.ok) {
+                        const taskData = await taskResponse.json() as any;
+                        if (taskData.docs && taskData.docs.length > 0) {
+                            const task = taskData.docs[0];
+
+                            // Step 3: Filter by type (in-memory) if requested
+                            if (args.workEffortTypeId && task.workEffortTypeId !== args.workEffortTypeId) {
+                                continue;
+                            }
+
+                            tasks.push({
+                                workEffortId: task.workEffortId,
+                                workEffortName: task.workEffortName,
+                                workEffortTypeId: task.workEffortTypeId,
+                                currentStatusId: task.currentStatusId,
+                                description: task.description || undefined, // Convert null to undefined
+                                createdDate: task.createdDate ? new Date(task.createdDate).toISOString() : undefined // Convert timestamp to ISO string
+                            });
+                        }
+                    }
+                }
 
                 return {
                     content: [
