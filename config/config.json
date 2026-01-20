@@ -13,15 +13,15 @@
   "SCOPES_SUPPORTED": [
     "mcp:call-tools"
   ],
-  "BACKEND_API_BASE": "https://dev-soc.hotwaxsystems.com",
+  "BACKEND_API_BASE": "https://www.socwms.com",
   "BACKEND_USER_AGENT": "OFBiz-MCP-server",
   "MCP_SERVER_CLIENT_ID": "",
   "MCP_SERVER_CLIENT_SECRET": "",
-  "BACKEND_API_AUDIENCE": "https://dev-soc.hotwaxsystems.com",
-  "BACKEND_API_RESOURCE": "https://dev-soc.hotwaxsystems.com",
+  "BACKEND_API_AUDIENCE": "https://www.socwms.com",
+  "BACKEND_API_RESOURCE": "https://www.socwms.com",
   "TOKEN_EXCHANGE_SCOPE": [
     "ofbiz:use-api"
   ],
-  "BACKEND_API_AUTH": "https://dev-soc.hotwaxsystems.com/rest/auth/token",
-  "BACKEND_ACCESS_TOKEN": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyTG9naW5JZCI6ImhvdHdheC51c2VyIiwiaXNzIjoiZGV2LXNvYyIsImV4cCI6MTc2OTAwMTQyOSwiaWF0IjoxNzY4OTE1MDI5fQ.g_PU-NkNJ1Xgpk6vEkK0c1FZRxa5H3IJqk2407wM1HRUUi__VET3-jHqjJRQMHPEq7rLW_-2x-OCSGhZEufifg"
+  "BACKEND_API_AUTH": "https://www.socwms.com/rest/auth/token",
+  "BACKEND_ACCESS_TOKEN": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyTG9naW5JZCI6ImFkbWluIiwiaXNzIjoic29jLXByb2QiLCJleHAiOjE3NjkwMDU5NTEsImlhdCI6MTc2ODkxOTU1MX0.F46eO8Isjjuw9eUCaJ4D5bt8R5o2_l4NVQPG2O0g_WehGGhtbv5crlN8A4z1TeJ6fJtcq4D1TuOLVu-XDqBsZA"
 }
