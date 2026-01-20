@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import express from 'express';
+import fetch from 'node-fetch';
+import https from 'https';
 
 import type { ServerConfig, ToolDefinition } from '../lib/config/types.js';
 
@@ -7,76 +9,93 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
   return {
     name: 'findProductById',
     metadata: {
-      title: 'Find a product by ID',
-      description: 'Find a product by using its ID. If the ID is not provided, ask for it.',
+      title: 'Find Product by ID',
+      description: 'Find a product by its ID or internal name.',
       inputSchema: {
-        id: z
-          .string()
-          .min(2)
-          .max(20)
-          .describe('ID of the product to find; must be between 2 and 20 characters long.')
+        id: z.string().min(2).describe('ID or Internal Name of the product to find.')
       },
       outputSchema: {
-        productId: z.string().describe('The unique identifier of the product.'),
-        productName: z.string().optional().describe('The name of the product.'),
-        internalName: z.string().optional().describe('The technical name of the product.'),
-        description: z.string().optional().describe('A brief description of the product.'),
-        productTypeId: z.string().optional().describe('The type identifier of the product.')
+        productId: z.string(),
+        productName: z.string().optional(),
+        internalName: z.string().optional(),
+        description: z.string().optional(),
+        productTypeId: z.string().optional(),
+        isVirtual: z.string().optional(),
+        isVariant: z.string().optional()
       }
     },
-    handler: async ({ id }: { id: string }, request: express.Request) => {
-      const idParam = { idToFind: id };
-      const inParams = encodeURIComponent(JSON.stringify(idParam));
-      const backendUrl = `${serverConfig.BACKEND_API_BASE}/rest/services/findProductById?inParams=${inParams}`;
+    handler: async (args: { id: string }, request: express.Request) => {
+      const backendUrl = `${serverConfig.BACKEND_API_BASE}/api/performFind`;
 
-      const requestOptions: { method: string; headers: Record<string, string> } = {
-        method: 'GET',
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      });
+
+      const getRequestOptions = (entityName: string, inputFields: any) => ({
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'User-Agent': serverConfig.BACKEND_USER_AGENT || '',
-          Accept: 'application/json'
-        }
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((request as any).authInfo?.downstreamToken) {
-        requestOptions.headers['Authorization'] =
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          `Bearer ${(request as any).authInfo.downstreamToken}`;
-      }
+          Accept: 'application/json',
+          Authorization: (request as any).authInfo?.downstreamToken
+            ? `Bearer ${(request as any).authInfo.downstreamToken}`
+            : (serverConfig.BACKEND_ACCESS_TOKEN ? `Bearer ${serverConfig.BACKEND_ACCESS_TOKEN}` : '')
+        },
+        body: JSON.stringify({
+          entityName,
+          noConditionFind: 'Y',
+          inputFields,
+          viewSize: 1
+        }),
+        agent: httpsAgent
+      });
 
       try {
-        const response = await fetch(backendUrl, requestOptions);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // Try finding by productId first
+        let response = await fetch(backendUrl, getRequestOptions('Product', { productId: args.id }));
+        let data = await response.json() as any;
+
+        if (!data.docs || data.docs.length === 0) {
+          // Fallback: Try finding by internalName
+          response = await fetch(backendUrl, getRequestOptions('Product', { internalName: args.id }));
+          data = await response.json() as any;
         }
 
-        const responseData = await response.json();
-        if (!responseData.data || !responseData.data.product) {
-          throw new Error('Product not found.');
+        if (!data.docs || data.docs.length === 0) {
+          return {
+            content: [{ type: 'text', text: `Product not found: ${args.id}` }],
+            isError: true
+          };
         }
-        const structuredContent = {
-          productId: responseData.data.product.productId || '',
-          productName: responseData.data.product.productName || '',
-          internalName: responseData.data.product.internalName || '',
-          description: responseData.data.product.description || '',
-          productTypeId: responseData.data.product.productTypeId || ''
+
+        const product = data.docs[0];
+        const result = {
+          productId: product.productId,
+          productName: product.productName || undefined,
+          internalName: product.internalName || undefined,
+          description: product.description || undefined,
+          productTypeId: product.productTypeId || undefined,
+          isVirtual: product.isVirtual || undefined,
+          isVariant: product.isVariant || undefined
         };
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(structuredContent)
+              text: JSON.stringify(result, null, 2)
             }
           ],
-          structuredContent: structuredContent
+          structuredContent: result
         };
+
       } catch (error) {
-        console.error('Error making backend request:', error);
+        console.error('Error in findProductById:', error);
         return {
           content: [
             {
               type: 'text',
-              text: `Error finding product: ${error instanceof Error ? error.message : 'Unknown error'}`
+              text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
             }
           ],
           isError: true

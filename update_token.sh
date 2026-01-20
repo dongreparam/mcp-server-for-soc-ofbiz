@@ -41,7 +41,7 @@ CMD=(curl -s -k -X POST "$BACKEND_API_AUTH" \
 RESPONSE=$("${CMD[@]}")
 
 # Step 2: Extract access_token from JSON response
-ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.data.access_token')
+ACCESS_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
 
 if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
   echo "❌ Failed to retrieve access_token"

@@ -84,13 +84,13 @@ async function main() {
           : undefined,
       tokenExchangeConfig: derivedConfig.enableAuth
         ? {
-            authzServerBaseUrl: runtimeConfig.config.AUTHZ_SERVER_BASE_URL!,
-            mcpServerClientId: runtimeConfig.config.MCP_SERVER_CLIENT_ID!,
-            mcpServerClientSecret: runtimeConfig.config.MCP_SERVER_CLIENT_SECRET!,
-            tokenExchangeScope: derivedConfig.tokenExchangeScope,
-            backendApiResource: runtimeConfig.config.BACKEND_API_RESOURCE,
-            backendApiAudience: runtimeConfig.config.BACKEND_API_AUDIENCE
-          }
+          authzServerBaseUrl: runtimeConfig.config.AUTHZ_SERVER_BASE_URL!,
+          mcpServerClientId: runtimeConfig.config.MCP_SERVER_CLIENT_ID!,
+          mcpServerClientSecret: runtimeConfig.config.MCP_SERVER_CLIENT_SECRET!,
+          tokenExchangeScope: derivedConfig.tokenExchangeScope,
+          backendApiResource: runtimeConfig.config.BACKEND_API_RESOURCE,
+          backendApiAudience: runtimeConfig.config.BACKEND_API_AUDIENCE
+        }
         : undefined,
       getBackendAccessToken
     });
@@ -113,10 +113,10 @@ async function main() {
       enableHttps: derivedConfig.enableHttps,
       tlsConfig: derivedConfig.enableHttps
         ? {
-            keyPath: runtimeConfig.config.TLS_KEY_PATH!,
-            certPath: runtimeConfig.config.TLS_CERT_PATH!,
-            passphrase: runtimeConfig.config.TLS_KEY_PASSPHRASE
-          }
+          keyPath: runtimeConfig.config.TLS_KEY_PATH!,
+          certPath: runtimeConfig.config.TLS_CERT_PATH!,
+          passphrase: runtimeConfig.config.TLS_KEY_PASSPHRASE
+        }
         : undefined,
       enableAuth: derivedConfig.enableAuth,
       enableTokenExchange: derivedConfig.enableTokenExchange,

@@ -1,0 +1,10 @@
+{
+    "error": "File not found on server disk.",
+    "details": {
+        "contentId": "62701",
+        "dataResourceId": "62731",
+        "expectedPath": "runtime/datamanager//imported/IMP_SAPI_ORDER/Error_Records_JSON_DM29908.json",
+        "resolvedPath": "/Users/paramdongre/sandboxSoc/ofbiz-17.12/runtime/datamanager/imported/IMP_SAPI_ORDER/Error_Records_JSON_DM29908.json",
+        "status": "MISSING"
+    }
+}

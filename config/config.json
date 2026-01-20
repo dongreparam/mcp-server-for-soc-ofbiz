@@ -10,14 +10,18 @@
   "RATE_LIMIT_MAX_REQUESTS": 100,
   "MCP_SERVER_BASE_URL": "",
   "AUTHZ_SERVER_BASE_URL": "",
-  "SCOPES_SUPPORTED": ["mcp:call-tools"],
-  "BACKEND_API_BASE": "https://demo-stable.ofbiz.apache.org",
+  "SCOPES_SUPPORTED": [
+    "mcp:call-tools"
+  ],
+  "BACKEND_API_BASE": "https://dev-soc.hotwaxsystems.com",
   "BACKEND_USER_AGENT": "OFBiz-MCP-server",
   "MCP_SERVER_CLIENT_ID": "",
   "MCP_SERVER_CLIENT_SECRET": "",
-  "BACKEND_API_AUDIENCE": "https://demo-stable.ofbiz.apache.org",
-  "BACKEND_API_RESOURCE": "https://demo-stable.ofbiz.apache.org",
-  "TOKEN_EXCHANGE_SCOPE": ["ofbiz:use-api"],
-  "BACKEND_API_AUTH": "https://demo-stable.ofbiz.apache.org/rest/auth/token",
-  "BACKEND_ACCESS_TOKEN": ""
+  "BACKEND_API_AUDIENCE": "https://dev-soc.hotwaxsystems.com",
+  "BACKEND_API_RESOURCE": "https://dev-soc.hotwaxsystems.com",
+  "TOKEN_EXCHANGE_SCOPE": [
+    "ofbiz:use-api"
+  ],
+  "BACKEND_API_AUTH": "https://dev-soc.hotwaxsystems.com/rest/auth/token",
+  "BACKEND_ACCESS_TOKEN": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJ1c2VyTG9naW5JZCI6ImhvdHdheC51c2VyIiwiaXNzIjoiZGV2LXNvYyIsImV4cCI6MTc2OTAwMTQyOSwiaWF0IjoxNzY4OTE1MDI5fQ.g_PU-NkNJ1Xgpk6vEkK0c1FZRxa5H3IJqk2407wM1HRUUi__VET3-jHqjJRQMHPEq7rLW_-2x-OCSGhZEufifg"
 }
