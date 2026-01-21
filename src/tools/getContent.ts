@@ -16,15 +16,14 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                     .string()
                     .min(1)
                     .describe('The unique identifier of the Content to retrieve.'),
-                configId: z.string().optional().describe('The DataManager Config ID to optimize file saving path.'),
-                category: z.enum(['uploaded', 'error']).optional().describe('Category of the file (uploaded or error) for organization.')
+                configId: z.string().optional().describe('The DataManager Config ID associated with this content.'),
+                category: z.enum(['uploaded', 'error']).optional().describe('Category of the content (uploaded or error).')
             },
             outputSchema: {
                 contentId: z.string(),
                 dataResourceId: z.string().optional(),
                 textData: z.string().optional(),
-                mimeType: z.string().optional(),
-                savedPath: z.string().optional()
+                mimeType: z.string().optional()
             }
         },
         handler: async (args: { contentId: string; configId?: string; category?: 'uploaded' | 'error' }, request: express.Request) => {
@@ -102,7 +101,7 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                     }
                 }
 
-                // Fallback / Primary for Files: Try to fetch from remote endpoint using downloadCSV
+                // Fallback / Primary for Files: Try to fetch from remote endpoint using DownloadCsvFile
                 if (!textData) {
                     try {
                         const token = (request as any).authInfo?.downstreamToken || serverConfig.BACKEND_ACCESS_TOKEN;
@@ -121,7 +120,6 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                         if (remoteResponse.ok) {
                             textData = await remoteResponse.text();
                         } else {
-                            // Log the response text for debugging login page redirects
                             const errText = await remoteResponse.text();
                             console.error(`[getContent] Remote fetch failed: ${remoteResponse.status} ${remoteResponse.statusText}. Response preview: ${errText.substring(0, 200)}`);
                         }
@@ -137,76 +135,15 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                     };
                 }
 
-                // --- Persistence Logic ---
-                let savedPath = undefined;
-                if (args.configId) {
-                    const category = args.category || 'uploaded';
-                    const fs = await import('fs');
-                    const path = await import('path');
-                    const { fileURLToPath } = await import('url');
-
-                    // Determine extension
-                    let ext = '.txt';
-                    const mimeType = contentRecord.mimeTypeId;
-                    if (mimeType === 'text/csv' || mimeType === 'application/csv') ext = '.csv';
-                    else if (mimeType === 'application/json') ext = '.json';
-                    else if (mimeType === 'text/xml' || mimeType === 'application/xml') ext = '.xml';
-                    else if (mimeType === 'application/pdf') ext = '.pdf';
-
-                    // Recursive function to find 'runtime' directory
-                    const findRuntimeDir = (startDir: string): string | null => {
-                        let currentDir = startDir;
-                        const root = path.parse(currentDir).root;
-                        while (currentDir !== root) {
-                            const candidate = path.join(currentDir, 'runtime');
-                            if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-                                return candidate;
-                            }
-                            currentDir = path.dirname(currentDir);
-                        }
-                        // Check root as well
-                        const candidate = path.join(root, 'runtime');
-                        if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-                            return candidate;
-                        }
-                        return null;
-                    };
-
-                    const currentFileUrl = import.meta.url;
-                    const currentFilePath = fileURLToPath(currentFileUrl);
-                    const currentDir = path.dirname(currentFilePath);
-
-                    const runtimeDir = findRuntimeDir(currentDir);
-
-                    if (runtimeDir) {
-                        const dirName = `${category}File_${args.configId}`;
-                        const targetDir = path.join(runtimeDir, dirName);
-
-                        if (!fs.existsSync(targetDir)) {
-                            await fs.promises.mkdir(targetDir, { recursive: true });
-                        }
-
-                        const fileName = `${args.contentId}${ext}`;
-                        savedPath = path.join(targetDir, fileName);
-
-                        await fs.promises.writeFile(savedPath, textData, 'utf8');
-                        console.log(`Saved content to: ${savedPath}`);
-                    } else {
-                        console.error('Could not find "runtime" directory in parent hierarchy.');
-                    }
-                }
-                // -------------------------
-
                 const result = {
                     contentId: args.contentId,
                     dataResourceId: dataResourceId || undefined,
                     textData: textData || undefined,
-                    mimeType: contentRecord.mimeTypeId || undefined,
-                    savedPath: savedPath
+                    mimeType: contentRecord.mimeTypeId || undefined
                 };
 
                 return {
-                    content: [{ type: 'text', text: `Content Retrieved.\n${savedPath ? `Saved to: ${savedPath}\n` : ''}\nPreview:\n${textData.substring(0, 500)}...` }],
+                    content: [{ type: 'text', text: textData }],
                     structuredContent: result
                 };
 
