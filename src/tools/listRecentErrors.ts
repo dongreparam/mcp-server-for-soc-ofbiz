@@ -45,8 +45,11 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                 rejectUnauthorized: false
             });
 
-            // Remove status filter to fetch all recent logs, then filter for errors in memory
-            const inputFields: any = {};
+            // Configure strict DB-side filtering
+            const inputFields: any = {
+                statusId: 'SERVICE_FINISHED',
+                errorRecordContentId_op: 'not-empty'
+            };
 
             if (args.configId) {
                 inputFields.configId = args.configId;
@@ -61,9 +64,9 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                 },
                 body: JSON.stringify({
                     entityName: 'DataManagerLog',
-                    noConditionFind: 'Y',
+                    noConditionFind: 'N', // Must be 'N' for inputFields to work
                     inputFields: inputFields,
-                    viewSize: args.limit || 20, // Increase default fetch size to catch errors
+                    viewSize: args.limit || 20,
                     orderBy: '-createdDate'
                 }),
                 agent: httpsAgent
@@ -89,15 +92,8 @@ export default function (serverConfig: ServerConfig): ToolDefinition {
                 const responseData = await response.json() as any;
                 const docs = responseData.docs || [];
 
-                // Filter for logs that are either explicitly failed OR have an error record
-                const failedLogs = docs.filter((log: any) => {
-                    return log.statusId === 'SERVICE_FAILED' ||
-                        log.statusId === 'SERVICE_CRASHED' ||
-                        log.statusId === 'DM_LOG_ERROR' ||
-                        (log.errorRecordContentId && log.errorRecordContentId.trim() !== '');
-                });
-
-                const logs = failedLogs.map((log: any) => ({
+                // Mapping directly since DB handles the filtering now
+                const logs = docs.map((log: any) => ({
                     logId: log.logId,
                     configId: log.configId || undefined,
                     ownerPartyId: log.ownerPartyId || undefined,
